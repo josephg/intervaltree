@@ -125,9 +125,11 @@ class IntervalTree {
   // unbalanced based on how its used.
 
   root: TreeNode | null
+  size: number
 
   constructor() {
     this.root = null
+    this.size = 0
     // this.root = new TreeNode
   }
 
@@ -137,6 +139,7 @@ class IntervalTree {
     const i: Interval = data === undefined ? [a, b] : [a, b, data]
     if (this.root === null) this.root = new TreeNode(centre(i))
     this.root.addInterval(i)
+    this.size++
   }
 
   widen(p: number, amt: number = 1) {
@@ -148,6 +151,7 @@ class IntervalTree {
   }
 
   removeIntervalRef(i: Interval): boolean {
+    this.size--
     if (this.root == null) return false
     else return this.root.removeIntervalRef(i)
   }

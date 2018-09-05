@@ -24,18 +24,18 @@ class NaiveMock {
     yield *results.sort(sortCmp)
   }
 
-  widen(p: number, amt: number = 1) {
+  widen(p: number, amt: number = 1, extendEndEq = true) {
     assert(amt >= 0)
     this.entries.forEach(i => {
       if (i[0] >= p) i[0] += amt
-      if (i[1] >= p) i[1] += amt
+      if (i[1] > p || (extendEndEq && i[1] === p)) i[1] += amt
     })
   }
   shrink(p: number, amt: number = 1) {
     assert(amt >= 0)
     this.entries.forEach(i => {
       if (i[0] >= p) i[0] = Math.max(i[0] - amt, p)
-      if (i[1] >= p) i[1] += amt
+      if (i[1] >= p) i[1] = Math.max(i[1] - amt, p)
     })
   }
 }
