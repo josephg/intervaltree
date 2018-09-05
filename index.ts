@@ -1,15 +1,18 @@
 import bs = require('binary-search')
+import assert = require('assert')
 
 const abs = (x: number) => x < 0 ? -x : x
 
-export type Interval = [number, number]
+export type Interval = [number, number] | [number, number, any]
 // const cmp = (a: number, b: number) => a - b
 const cmpFirst = (a: Interval, b: number) => (a[0] - b) || (a[1] - b)
 const cmpSecond = (a: Interval, b: number) => (a[1] - b) || (a[0] - b)
 
 const sortCmp = (a: Interval, b: Interval) => (a[0] - b[0]) || (a[1] - b[1])
 
-const centre = (i: Interval) => (i[0] + i[1])/2
+const centre = (i: Interval) => Number.isInteger(i[0])
+  ? Math.floor((i[0] + i[1])/2)
+  : ((i[0] + i[1])/2)
 
 // This is a helper function to avoid repeated code below. Note we're using a
 // simple binary search-sorted list for this. Moving to a tree for this local
@@ -46,6 +49,9 @@ const removeLocals = (i: Interval, from: Interval[], isFirst: boolean) => {
 
 class TreeNode {
   centre: number
+
+  // All child intervals either:
+  // - Contain centre in their range
   left: TreeNode | null
   right: TreeNode | null
 
@@ -63,7 +69,7 @@ class TreeNode {
     if (i[0] > this.centre) {
       if (this.right == null) this.right = new TreeNode(centre(i))
       this.right.addInterval(i)
-    } else if (i[1] < this.centre) {
+    } else if (i[1] <= this.centre) { // <= because == wouldn't intersect.
       if (this.left == null) this.left = new TreeNode(centre(i))
       this.left.addInterval(i)
     } else {
@@ -87,7 +93,6 @@ class TreeNode {
   }
 
   *queryPoint(p: number, sort: boolean): Iterable<Interval> {
-    debugger
     if (p < this.centre) {
       if (this.left) yield* this.left.queryPoint(p, sort)
       for (let i = 0; i < this.byStart.length && this.byStart[i][0] <= p; i++) {
@@ -96,16 +101,15 @@ class TreeNode {
     } else if (p === this.centre) {
       yield* this.byStart
     } else { // p > this.centre
-
       if (sort) {
         // I need to yield them in reverse order. Using a linear scan here
         // because we're O(n) here anyway and this is simpler than doing a
         // binary search then scanning backwards.
         let i = this.byEnd.length
-        while (i > 0 && this.byEnd[i-1][1] >= p) i--
+        while (i > 0 && this.byEnd[i-1][1] > p) i--
         yield *this.byEnd.slice(i).sort(sortCmp)
       } else {
-        for (let i = this.byEnd.length - 1; i >= 0 && this.byEnd[i][1] >= p; i--)
+        for (let i = this.byEnd.length - 1; i >= 0 && this.byEnd[i][1] > p; i--)
           yield this.byEnd[i]
       }
       // for (; i < this.byEnd.length; i++) yield this.byEnd[i]
@@ -127,12 +131,20 @@ class IntervalTree {
     // this.root = new TreeNode
   }
 
-  addInterval(a: number, b: number): void;
-  addInterval(i: Interval): void;
-  addInterval(a: number | Interval, b?: number) {
-    const i: Interval = (typeof a === 'number') ? [a, b!] : a
+  // Intervals are considered as [start, end) ranges.
+  addInterval(a: number, b: number, data?: any) {
+    assert(b >= a)
+    const i: Interval = data === undefined ? [a, b] : [a, b, data]
     if (this.root === null) this.root = new TreeNode(centre(i))
     this.root.addInterval(i)
+  }
+
+  widen(p: number, amt: number = 1) {
+
+  }
+
+  shrink(p: number, amt: number = 1) {
+
   }
 
   removeIntervalRef(i: Interval): boolean {
